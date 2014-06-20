@@ -120,7 +120,7 @@ module.exports.open = function (accessPoint, token) {
             _token = {
                 "@": ['Type'],
                 Type: 'PassportAccessToken',
-                SessionID: token
+                AccessToken: token
             };
         }
         else {
@@ -355,7 +355,7 @@ module.exports.open = function (accessPoint, token) {
                     _token = {
                         "@": ['Type'],
                         Type: 'PassportAccessToken',
-                        SessionID: token
+                        AccessToken: token
                     };
                 }
                 else {
