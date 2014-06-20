@@ -1,0 +1,23 @@
+{
+    "name": "nodedsa",
+    "version": "1.0.0",
+    "description": "ischool dsa client",
+    "main": "app.js",
+    "author": {
+        "name": "ischool.com.tw",
+        "email": "lealal@ischool.com.tw"
+    },
+    "dependencies": {
+        "nodexml": "*",
+        "request": "2.36.0"
+    },
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/lelala/nodedsa.git"
+	}
+	"license": "MIT",
+	"bugs": {
+	"url": "https://github.com/lelala/nodedsa/issues"
+	},
+	"homepage": "https://github.com/lelala/nodedsa"
+}
