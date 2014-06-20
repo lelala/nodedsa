@@ -14,10 +14,10 @@
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/lelala/nodedsa.git"
-	}
+	},
 	"license": "MIT",
 	"bugs": {
-	"url": "https://github.com/lelala/nodedsa/issues"
+		"url": "https://github.com/lelala/nodedsa/issues"
 	},
 	"homepage": "https://github.com/lelala/nodedsa"
 }
