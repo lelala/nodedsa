@@ -2,7 +2,7 @@
 Sample
 ----
 ```
-var conn = require('nodexml').open(url, accesstoken);
+var conn = require('nodedsa').open(url, accesstoken);
 conn.send({
 	service:'',
 	body:{},
