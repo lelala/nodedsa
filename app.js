@@ -140,66 +140,66 @@ module.exports.open = function (accessPoint, token) {
         _IsLogin = false;
 
         request.post(
-	        _accessPoint,
-	        {
-	            body: nodexml.obj2xml({
-	                Header: {
-	                    TargetService: 'DS.Base.Connect',
-	                    SecurityToken: _token
-	                },
-	                Body: (_token.Type != 'Session') ? { RequestSessionID: '' } : {}
-	            },
-                'Envelope')
-	        },
-	        function (error, response, data) {
-	            if (error) {
-	                if (_LoginRetry < 3) {
-	                    _LoginRetry++;
-	                    setTimeout(login, 500);
-	                    return;
-	                }
-	                _LoginError = {
-	                    'data': 'onerror',
-	                    'textStatus': 'onerror',
-	                    'XMLHttpRequest': response,
-	                    'statusCode': "",
-	                    'message': ""
-	                };
-	                SendAllRequest();
-	            }
-	            else {
-	                var resp = nodexml.xml2obj(data);
-	                if (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code == "0") {
-	                    if (_token.Type != 'Session') {
-	                        _token = {
-	                            "@": ['Type'],
-	                            Type: 'Session',
-	                            SessionID: (resp.Envelope && resp.Envelope.Body) ? resp.Envelope.Body.SessionID : ""
-	                        }
-	                    }
-	                    _UserInfo = resp.Envelope.Header.UserInfo;
-	                    _LoginError = null;
-	                    _IsLogin = true;
-	                    for (var i = 0; i < _ReadyCallBack.length; i++) {
-	                        _ReadyCallBack[i]();
-	                    }
-	                    SendAllRequest();
-	                }
-	                else {
-	                    _LoginError = {
-	                        'data': data,
-	                        'textStatus': 'unknow',
-	                        'XMLHttpRequest': response,
-	                        'statusCode': (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code : "",
-	                        'message': (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Message : ""
-	                    };
-	                    for (index in _LoginErrorCallBack) {
-	                        _LoginErrorCallBack[index](_LoginError);
-	                    }
-	                    SendAllRequest();
-	                }
-	            }
-	        }
+            _accessPoint,
+            {
+                body: nodexml.obj2xml({
+                    Header: {
+                        TargetService: 'DS.Base.Connect',
+                        SecurityToken: _token
+                    },
+                    Body: (_token.Type != 'Session') ? { RequestSessionID: '' } : {}
+                },
+                    'Envelope')
+            },
+            function (error, response, data) {
+                if (error) {
+                    if (_LoginRetry < 3) {
+                        _LoginRetry++;
+                        setTimeout(login, 500);
+                        return;
+                    }
+                    _LoginError = {
+                        'data': 'onerror',
+                        'textStatus': 'onerror',
+                        'XMLHttpRequest': response,
+                        'statusCode': "",
+                        'message': ""
+                    };
+                    SendAllRequest();
+                }
+                else {
+                    var resp = nodexml.xml2obj(data);
+                    if (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code == "0") {
+                        if (_token.Type != 'Session') {
+                            _token = {
+                                "@": ['Type'],
+                                Type: 'Session',
+                                SessionID: (resp.Envelope && resp.Envelope.Body) ? resp.Envelope.Body.SessionID : ""
+                            }
+                        }
+                        _UserInfo = resp.Envelope.Header.UserInfo;
+                        _LoginError = null;
+                        _IsLogin = true;
+                        for (var i = 0; i < _ReadyCallBack.length; i++) {
+                            _ReadyCallBack[i]();
+                        }
+                        SendAllRequest();
+                    }
+                    else {
+                        _LoginError = {
+                            'data': data,
+                            'textStatus': 'unknow',
+                            'XMLHttpRequest': response,
+                            'statusCode': (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code : "",
+                            'message': (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Message : ""
+                        };
+                        for (index in _LoginErrorCallBack) {
+                            _LoginErrorCallBack[index](_LoginError);
+                        }
+                        SendAllRequest();
+                    }
+                }
+            }
         );
     }
     if (_accessPoint.indexOf("://") < 0) {
@@ -245,6 +245,12 @@ module.exports.open = function (accessPoint, token) {
                         'networkError': null,
                         'ajaxException': null
                     }, null);
+                    _SendingRequests[index].promiseReject({
+                        'loginError': _LoginError,
+                        'dsaError': null,
+                        'networkError': null,
+                        'ajaxException': null
+                    });
                 }
                 _SendingRequests = [];
             }
@@ -252,9 +258,9 @@ module.exports.open = function (accessPoint, token) {
     function SendRequest(req) {
 
         request.post(
-	        _accessPoint,
-	        {
-	            body: (typeof req.body == "string") ?
+            _accessPoint,
+            {
+                body: (typeof req.body == "string") ?
                     (nodexml.obj2xml({
                         Header: {
                             TargetService: req.service,
@@ -269,56 +275,73 @@ module.exports.open = function (accessPoint, token) {
                         },
                         Body: req.body
                     }, 'Envelope'))
-	        },
-	        function (error, response, data) {
-	            if (error) {
-	                for (index in _ErrorCallBack) {
-	                    _ErrorCallBack[index](req, {
-	                        'loginError': null,
-	                        'dsaError': null,
-	                        'networkError': null,
-	                        'ajaxException': 'xdr.onerror'
-	                    });
-	                }
-	                req.result(null, {
-	                    'loginError': null,
-	                    'dsaError': null,
-	                    'networkError': null,
-	                    'ajaxException': 'xdr.onerror'
-	                }, null);
-	            }
-	            else {
-	                var resp = nodexml.xml2obj(data);
-	                if (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code == "0") {
-	                    req.result(resp.Envelope.Body || {}, null, response, resp);
-	                }
-	                else {
-	                    //Service Faild
-	                    for (index in _ErrorCallBack) {
-	                        _ErrorCallBack[index](req, {
-	                            'loginError': null,
-	                            'dsaError': {
-	                                header: resp.Envelope ? resp.Envelope.Header : null,
-	                                status: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code : "",
-	                                message: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Message : ""
-	                            },
-	                            'networkError': null,
-	                            'ajaxException': null
-	                        });
-	                    }
-	                    req.result(null, {
-	                        'loginError': null,
-	                        'dsaError': {
-	                            header: resp.Envelope ? resp.Envelope.Header : null,
-	                            status: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code : "",
-	                            message: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Message : ""
-	                        },
-	                        'networkError': null,
-	                        'ajaxException': null
-	                    }, response, resp);
-	                }
-	            }
-	        }
+            },
+            function (error, response, data) {
+                if (error) {
+                    for (index in _ErrorCallBack) {
+                        _ErrorCallBack[index](req, {
+                            'loginError': null,
+                            'dsaError': null,
+                            'networkError': null,
+                            'ajaxException': 'xdr.onerror'
+                        });
+                    }
+                    req.result(null, {
+                        'loginError': null,
+                        'dsaError': null,
+                        'networkError': null,
+                        'ajaxException': 'xdr.onerror'
+                    }, null);
+                    req.promiseReject({
+                        'loginError': null,
+                        'dsaError': null,
+                        'networkError': null,
+                        'ajaxException': 'xdr.onerror'
+                    });
+                }
+                else {
+                    var resp = nodexml.xml2obj(data);
+                    if (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code == "0") {
+                        req.result(resp.Envelope.Body || {}, null, response, resp);
+                        req.promiseReslove(resp.Envelope.Body || {});
+                    }
+                    else {
+                        //Service Faild
+                        for (index in _ErrorCallBack) {
+                            _ErrorCallBack[index](req, {
+                                'loginError': null,
+                                'dsaError': {
+                                    header: resp.Envelope ? resp.Envelope.Header : null,
+                                    status: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code : "",
+                                    message: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Message : ""
+                                },
+                                'networkError': null,
+                                'ajaxException': null
+                            });
+                        }
+                        req.result(null, {
+                            'loginError': null,
+                            'dsaError': {
+                                header: resp.Envelope ? resp.Envelope.Header : null,
+                                status: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code : "",
+                                message: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Message : ""
+                            },
+                            'networkError': null,
+                            'ajaxException': null
+                        }, response, resp);
+                        req.promiseReject({
+                            'loginError': null,
+                            'dsaError': {
+                                header: resp.Envelope ? resp.Envelope.Header : null,
+                                status: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code : "",
+                                message: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Message : ""
+                            },
+                            'networkError': null,
+                            'ajaxException': null
+                        });
+                    }
+                }
+            }
         );
     }
 
@@ -330,8 +353,12 @@ module.exports.open = function (accessPoint, token) {
             req.body = req.body || {};
             req.autoRetry = req.autoRetry || false;
             req.result = req.result ||
-            function (resp, errorInfo, XMLHttpRequest) {// errorInfo=null||{'loginError': null,'dsaError': null,'networkError': null,'ajaxException': null} 
-            };
+                function (resp, errorInfo, XMLHttpRequest) {// errorInfo=null||{'loginError': null,'dsaError': null,'networkError': null,'ajaxException': null} 
+                };
+            var resultPromise = new Promise(function (reslove, reject) {
+                req.promiseReslove = reslove;
+                req.promiseReject = reject;
+            });
             if (_IsLogin === false && _LoginError !== null) {
                 req.result(null, {
                     'loginError': _LoginError,
@@ -345,6 +372,7 @@ module.exports.open = function (accessPoint, token) {
                 if (_IsLogin)
                     SendAllRequest();
             }
+            return resultPromise;
         },
         reConnect: function (token) {
             _LoginError = null;
