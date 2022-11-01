@@ -1,6 +1,6 @@
 {
     "name": "nodedsa",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "description": "ischool dsa client",
     "main": "app.js",
     "author": {
@@ -8,15 +8,16 @@
         "email": "lealal@ischool.com.tw"
     },
     "dependencies": {
-        "nodexml": "*"
+        "nodexml": "*",
+        "request": "^2.88.2"
     },
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/lelala/nodedsa.git"
-	},
-	"license": "MIT",
-	"bugs": {
-		"url": "https://github.com/lelala/nodedsa/issues"
-	},
-	"homepage": "https://github.com/lelala/nodedsa"
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/lelala/nodedsa.git"
+    },
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/lelala/nodedsa/issues"
+    },
+    "homepage": "https://github.com/lelala/nodedsa"
 }

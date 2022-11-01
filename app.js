@@ -1,4 +1,5 @@
 ﻿var nodexml = require('nodexml');
+var request = require('request');
 module.exports.dsnsLookup = (function () {
     //#region DSNSCache
     var dsnsCache = {};
@@ -33,50 +34,52 @@ module.exports.dsnsLookup = (function () {
         else {
             //#region 向DSNS Server查詢
             function queryDSNS(target, dsnsList) {
-                fetch(
-                    dsnsList.pop(), {
-                    body: nodexml.obj2xml({
-                        Header: {
-                            TargetService: 'DS.NameService.GetDoorwayURL',
-                            SecurityToken: {
-                                '@': ['type'],
-                                Type: 'Basic',
-                                UserName: 'anonymous',
-                                Password: ''
+                request.post(
+                    dsnsList.pop(),
+                    {
+                        body: nodexml.obj2xml({
+                            Header: {
+                                TargetService: 'DS.NameService.GetDoorwayURL',
+                                SecurityToken: {
+                                    '@': ['type'],
+                                    Type: 'Basic',
+                                    UserName: 'anonymous',
+                                    Password: ''
+                                }
+                            },
+                            Body: {
+                                DomainName: target
                             }
-                        },
-                        Body: {
-                            DomainName: target
-                        }
-                    }, 'Envelope'),
-                    cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-                    method: 'POST', // *GET, POST, PUT, DELETE, etc.
-                })
-                    .then(data => {
-                        var resp = nodexml.xml2obj(data);
-                        if (resp && resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code == "0") {
-                            if (resp && resp.Envelope && resp.Envelope.Body && resp.Envelope.Body.DoorwayURL) {
-                                var lookupValue = resp.Envelope.Body.DoorwayURL.SecuredUrl || resp.Envelope.Body.DoorwayURL["@text"] || ("" + resp.Envelope.Body.DoorwayURL);
-                                dsnsLookupFinish(lookupValue);
-                            }
-                            else
-                                dsnsLookupFinish();
-                        }
-                        else {
+                        }, 'Envelope')
+                    },
+                    function (error, response, data) {
+                        if (error) {
                             if (dsnsList.length == 0) {
                                 dsnsLookupFinish();
                             }
                             else
                                 queryDSNS(target, dsnsList);
                         }
-                    })
-                    .catch(error => {
-                        if (dsnsList.length == 0) {
-                            dsnsLookupFinish();
+                        else {
+                            var resp = nodexml.xml2obj(data);
+                            if (resp && resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code == "0") {
+                                if (resp && resp.Envelope && resp.Envelope.Body && resp.Envelope.Body.DoorwayURL) {
+                                    var lookupValue = resp.Envelope.Body.DoorwayURL.SecuredUrl || resp.Envelope.Body.DoorwayURL["@text"] || ("" + resp.Envelope.Body.DoorwayURL);
+                                    dsnsLookupFinish(lookupValue);
+                                }
+                                else
+                                    dsnsLookupFinish();
+                            }
+                            else {
+                                if (dsnsList.length == 0) {
+                                    dsnsLookupFinish();
+                                }
+                                else
+                                    queryDSNS(target, dsnsList);
+                            }
                         }
-                        else
-                            queryDSNS(target, dsnsList);
-                    });
+                    }
+                );
             }
             var dsnsList = [
                 'http://dsns5.ischool.com.tw/dsns/dsns',
@@ -135,7 +138,8 @@ module.exports.open = function (accessPoint, token) {
     function login() {
         _LoginError = null;
         _IsLogin = false;
-        fetch(
+
+        request.post(
             _accessPoint,
             {
                 body: nodexml.obj2xml({
@@ -145,57 +149,58 @@ module.exports.open = function (accessPoint, token) {
                     },
                     Body: (_token.Type != 'Session') ? { RequestSessionID: '' } : {}
                 },
-                    'Envelope'),
-                cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-                method: 'POST', // *GET, POST, PUT, DELETE, etc.
-            })
-            .then(data => {
-                var resp = nodexml.xml2obj(data);
-                if (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code == "0") {
-                    if (_token.Type != 'Session') {
-                        _token = {
-                            "@": ['Type'],
-                            Type: 'Session',
-                            SessionID: (resp.Envelope && resp.Envelope.Body) ? resp.Envelope.Body.SessionID : ""
-                        }
+                    'Envelope')
+            },
+            function (error, response, data) {
+                if (error) {
+                    if (_LoginRetry < 3) {
+                        _LoginRetry++;
+                        setTimeout(login, 500);
+                        return;
                     }
-                    _UserInfo = resp.Envelope.Header.UserInfo;
-                    _LoginError = null;
-                    _IsLogin = true;
-                    for (var i = 0; i < _ReadyCallBack.length; i++) {
-                        _ReadyCallBack[i]();
-                    }
+                    _LoginError = {
+                        'data': 'onerror',
+                        'textStatus': 'onerror',
+                        'XMLHttpRequest': response,
+                        'statusCode': "",
+                        'message': ""
+                    };
                     SendAllRequest();
                 }
                 else {
-                    _LoginError = {
-                        'data': data,
-                        'textStatus': 'unknow',
-                        'XMLHttpRequest': {},
-                        'statusCode': (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code : "",
-                        'message': (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Message : ""
-                    };
-                    for (index in _LoginErrorCallBack) {
-                        _LoginErrorCallBack[index](_LoginError);
+                    var resp = nodexml.xml2obj(data);
+                    if (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code == "0") {
+                        if (_token.Type != 'Session') {
+                            _token = {
+                                "@": ['Type'],
+                                Type: 'Session',
+                                SessionID: (resp.Envelope && resp.Envelope.Body) ? resp.Envelope.Body.SessionID : ""
+                            }
+                        }
+                        _UserInfo = resp.Envelope.Header.UserInfo;
+                        _LoginError = null;
+                        _IsLogin = true;
+                        for (var i = 0; i < _ReadyCallBack.length; i++) {
+                            _ReadyCallBack[i]();
+                        }
+                        SendAllRequest();
                     }
-                    SendAllRequest();
+                    else {
+                        _LoginError = {
+                            'data': data,
+                            'textStatus': 'unknow',
+                            'XMLHttpRequest': response,
+                            'statusCode': (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code : "",
+                            'message': (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Message : ""
+                        };
+                        for (index in _LoginErrorCallBack) {
+                            _LoginErrorCallBack[index](_LoginError);
+                        }
+                        SendAllRequest();
+                    }
                 }
-            })
-            .catch(error => {
-                if (_LoginRetry < 3) {
-                    _LoginRetry++;
-                    setTimeout(login, 500);
-                    return;
-                }
-                _LoginError = {
-                    'data': 'onerror',
-                    'textStatus': 'onerror',
-                    'XMLHttpRequest': {},
-                    'statusCode': "",
-                    'message': ""
-                };
-                SendAllRequest();
-            });
+            }
+        );
     }
     if (_accessPoint.indexOf("://") < 0) {
         var index = _accessPoint.indexOf("/");
@@ -251,10 +256,10 @@ module.exports.open = function (accessPoint, token) {
             }
     }
     function SendRequest(req) {
-        fetch(
+
+        request.post(
             _accessPoint,
             {
-
                 body: (typeof req.body == "string") ?
                     (nodexml.obj2xml({
                         Header: {
@@ -269,20 +274,62 @@ module.exports.open = function (accessPoint, token) {
                             SecurityToken: _token
                         },
                         Body: req.body
-                    }, 'Envelope')),
-                cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-                method: 'POST', // *GET, POST, PUT, DELETE, etc.
-            })
-            .then(data => {
-                var resp = nodexml.xml2obj(data);
-                if (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code == "0") {
-                    req.result(resp.Envelope.Body || {}, null, response, resp);
-                    req.promiseReslove(resp.Envelope.Body || {});
-                }
-                else {
-                    //Service Faild
+                    }, 'Envelope'))
+            },
+            function (error, response, data) {
+                if (error) {
                     for (index in _ErrorCallBack) {
                         _ErrorCallBack[index](req, {
+                            'loginError': null,
+                            'dsaError': null,
+                            'networkError': null,
+                            'ajaxException': 'xdr.onerror'
+                        });
+                    }
+                    req.result(null, {
+                        'loginError': null,
+                        'dsaError': null,
+                        'networkError': null,
+                        'ajaxException': 'xdr.onerror'
+                    }, null);
+                    req.promiseReject({
+                        'loginError': null,
+                        'dsaError': null,
+                        'networkError': null,
+                        'ajaxException': 'xdr.onerror'
+                    });
+                }
+                else {
+                    var resp = nodexml.xml2obj(data);
+                    if (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code == "0") {
+                        req.result(resp.Envelope.Body || {}, null, response, resp);
+                        req.promiseReslove(resp.Envelope.Body || {});
+                    }
+                    else {
+                        //Service Faild
+                        for (index in _ErrorCallBack) {
+                            _ErrorCallBack[index](req, {
+                                'loginError': null,
+                                'dsaError': {
+                                    header: resp.Envelope ? resp.Envelope.Header : null,
+                                    status: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code : "",
+                                    message: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Message : ""
+                                },
+                                'networkError': null,
+                                'ajaxException': null
+                            });
+                        }
+                        req.result(null, {
+                            'loginError': null,
+                            'dsaError': {
+                                header: resp.Envelope ? resp.Envelope.Header : null,
+                                status: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code : "",
+                                message: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Message : ""
+                            },
+                            'networkError': null,
+                            'ajaxException': null
+                        }, response, resp);
+                        req.promiseReject({
                             'loginError': null,
                             'dsaError': {
                                 header: resp.Envelope ? resp.Envelope.Header : null,
@@ -293,50 +340,9 @@ module.exports.open = function (accessPoint, token) {
                             'ajaxException': null
                         });
                     }
-                    req.result(null, {
-                        'loginError': null,
-                        'dsaError': {
-                            header: resp.Envelope ? resp.Envelope.Header : null,
-                            status: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code : "",
-                            message: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Message : ""
-                        },
-                        'networkError': null,
-                        'ajaxException': null
-                    }, response, resp);
-                    req.promiseReject({
-                        'loginError': null,
-                        'dsaError': {
-                            header: resp.Envelope ? resp.Envelope.Header : null,
-                            status: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Code : "",
-                            message: (resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status) ? resp.Envelope && resp.Envelope.Header && resp.Envelope.Header.Status && resp.Envelope.Header.Status.Message : ""
-                        },
-                        'networkError': null,
-                        'ajaxException': null
-                    });
                 }
-            })
-            .catch(error => {
-                for (index in _ErrorCallBack) {
-                    _ErrorCallBack[index](req, {
-                        'loginError': null,
-                        'dsaError': null,
-                        'networkError': null,
-                        'ajaxException': 'xdr.onerror'
-                    });
-                }
-                req.result(null, {
-                    'loginError': null,
-                    'dsaError': null,
-                    'networkError': null,
-                    'ajaxException': 'xdr.onerror'
-                }, null);
-                req.promiseReject({
-                    'loginError': null,
-                    'dsaError': null,
-                    'networkError': null,
-                    'ajaxException': 'xdr.onerror'
-                });
-            });
+            }
+        );
     }
 
     var result = {
