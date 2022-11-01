@@ -1,5 +1,4 @@
 ﻿var nodexml = require('nodexml');
-var request = require('request');
 module.exports.dsnsLookup = (function () {
     //#region DSNSCache
     var dsnsCache = {};
