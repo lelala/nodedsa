@@ -1,6 +1,6 @@
 {
     "name": "nodedsa",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "ischool dsa client",
     "main": "app.js",
     "author": {
