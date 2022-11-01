@@ -8,8 +8,7 @@
         "email": "lealal@ischool.com.tw"
     },
     "dependencies": {
-        "nodexml": "*",
-        "request": "2.36.0"
+        "nodexml": "*"
     },
 	"repository": {
 		"type": "git",
