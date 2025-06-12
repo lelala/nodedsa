@@ -1,6 +1,6 @@
 {
     "name": "nodedsa",
-    "version": "1.2.0",
+    "version": "2.0.0",
     "description": "ischool dsa client",
     "main": "app.js",
     "author": {
@@ -8,8 +8,7 @@
         "email": "lealal@ischool.com.tw"
     },
     "dependencies": {
-        "nodexml": "*",
-        "request": "^2.88.2"
+        "nodexml": "*"
     },
     "repository": {
         "type": "git",
