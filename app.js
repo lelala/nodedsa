@@ -3,6 +3,26 @@ var request = require('request');
 module.exports.dsnsLookup = (function () {
     //#region DSNSCache
     var dsnsCache = {};
+    var CACHE_EXPIRY_TIME = 5 * 60 * 1000; // 5分鐘的快取過期時間
+
+    function setCache(key, value) {
+        dsnsCache[key] = {
+            value: value,
+            expiryTime: Date.now() + CACHE_EXPIRY_TIME
+        };
+    }
+
+    function getCache(key) {
+        var cache = dsnsCache[key];
+        if (!cache) return null;
+        
+        if (cache.expiryTime < Date.now()) {
+            delete dsnsCache[key];
+            return null;
+        }
+        
+        return cache.value;
+    }
     //#endregion
     return function (dsnsName, callback) {
         //#region DSNS Lookup
@@ -16,8 +36,8 @@ module.exports.dsnsLookup = (function () {
         function dsnsLookupFinish(result) {
             lookupResult = result || lookupResult;
             //#region 存入Cache
-            if (!!!dsnsCache[dsnsName]) {
-                dsnsCache[dsnsName] = lookupResult;
+            if (result) {
+                setCache(dsnsName, result);
             }
             //#endregion
             lookupFinish = true;
@@ -26,9 +46,10 @@ module.exports.dsnsLookup = (function () {
             }
         }
         //#endregion
-        if (!!dsnsCache[dsnsName]) {
+        var cachedDsns = getCache(dsnsName);
+        if (cachedDsns) {
             //#region 回傳Cache內容
-            dsnsLookupFinish(dsnsCache[dsnsName]);
+            dsnsLookupFinish(cachedDsns);
             //#endregion
         }
         else {
@@ -157,6 +178,10 @@ module.exports.open = function (accessPoint, token) {
                         _LoginRetry++;
                         setTimeout(login, 500);
                         return;
+                    }
+                    // 連線失敗時清除快取
+                    if (dsnsName) {
+                        delete dsnsCache[dsnsName];
                     }
                     _LoginError = {
                         'data': 'onerror',
