@@ -400,23 +400,41 @@ module.exports.open = function (accessPoint, token) {
             return resultPromise;
         },
         reConnect: function (token) {
-            _LoginError = null;
-            _IsLogin = false;
-            _token = {};
-            if (token) {
-                if (typeof token != "object") {
-                    _token = {
-                        "@": ['Type'],
-                        Type: 'PassportAccessToken',
-                        AccessToken: token
-                    };
+            return new Promise((resolve, reject) => {
+                _LoginError = null;
+                _IsLogin = false;
+                _token = {};
+                if (token) {
+                    if (typeof token != "object") {
+                        _token = {
+                            "@": ['Type'],
+                            Type: 'PassportAccessToken',
+                            AccessToken: token
+                        };
+                    }
+                    else {
+                        _token = token;
+                    }
                 }
-                else {
-                    _token = token;
-                }
-            }
-            _IsLogin = false;
-            login();
+                _IsLogin = false;
+
+                // 保存原始的 callback 函數
+                var originalReadyCallback = _ReadyCallBack;
+                var originalLoginErrorCallback = _LoginErrorCallBack;
+                
+                // 設定新的 callback 函數
+                _ReadyCallBack = [function() {
+                    _ReadyCallBack = originalReadyCallback;
+                    resolve();
+                }];
+                
+                _LoginErrorCallBack = [function(error) {
+                    _LoginErrorCallBack = originalLoginErrorCallback;
+                    reject(error);
+                }];
+
+                login();
+            });
         },
         ready: function (fn) {
             if (fn) {
@@ -425,6 +443,13 @@ module.exports.open = function (accessPoint, token) {
                     fn();
                 }
             }
+            return new Promise((resolve) => {
+                if (_IsLogin) {
+                    resolve();
+                } else {
+                    _ReadyCallBack.push(resolve);
+                }
+            });
         },
         OnLoginError: function (fn) {
             if (fn) {
