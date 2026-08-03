@@ -1,0 +1,25 @@
+schema: spec-driven
+
+context: |
+  Project: nodedsa, a CommonJS Node.js client for iSchool DSA services.
+  Runtime: Node.js 18 or newer, using the built-in fetch API.
+  Public entry point: app.js.
+  XML serialization and parsing: nodexml.
+  Public APIs: dsnsLookup(name, callback) and open(accessPoint, token).
+  Compatibility: preserve both callback and Promise usage unless a change
+  explicitly proposes a breaking release.
+  Style: keep implementation compatible with the existing CommonJS module.
+  Validation: run npm run spec:validate. Add focused automated tests whenever
+  behavior changes; network behavior should be tested with mocked fetch calls.
+
+rules:
+  proposal:
+    - State user-visible impact and backward-compatibility risk.
+    - Include explicit non-goals when the scope could be ambiguous.
+  specs:
+    - Describe observable behavior rather than implementation details.
+    - Cover callback and Promise behavior when either public contract changes.
+  design:
+    - Document protocol, authentication, or retry tradeoffs when affected.
+  tasks:
+    - Include tests and documentation updates when public behavior changes.

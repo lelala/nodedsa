@@ -242,6 +242,50 @@ module.exports.open = function (accessPoint, token) {
     else {
         login();
     }
+    function CreateNetworkErrorInfo(error) {
+        return {
+            'loginError': null,
+            'dsaError': null,
+            'networkError': {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+                type: error.type || 'fetch_error'
+            }
+        };
+    }
+    function RejectRequest(req, errorInfo, response, resp) {
+        for (var index in _ErrorCallBack) {
+            _ErrorCallBack[index](req, errorInfo);
+        }
+        req.result(null, errorInfo, response || null, resp);
+        req.promiseReject(errorInfo);
+    }
+    function NormalizeRequestOptions(options) {
+        if (options !== undefined && (options === null || typeof options !== 'object')) {
+            throw new TypeError('options must be a Fetch-compatible RequestInit object');
+        }
+
+        var normalizedOptions = {};
+        if (options) {
+            Object.keys(options).forEach(function (key) {
+                if (key !== 'headers' && key !== 'method' && key !== 'body') {
+                    normalizedOptions[key] = options[key];
+                }
+            });
+        }
+
+        var headers = new Headers({
+            'Content-Type': 'application/xml'
+        });
+        if (options && options.headers !== undefined) {
+            new Headers(options.headers).forEach(function (value, name) {
+                headers.set(name, value);
+            });
+        }
+        normalizedOptions.headers = headers;
+        return normalizedOptions;
+    }
     function SendAllRequest() {
         if (_IsLogin === true) {
             for (index in _SendingRequests) {
@@ -278,27 +322,26 @@ module.exports.open = function (accessPoint, token) {
     }
     async function SendRequest(req) {
         try {
-            const response = await fetch(_accessPoint, {
+            const requestBody = (typeof req.body == "string") ?
+                (nodexml.obj2xml({
+                    Header: {
+                        TargetService: req.service,
+                        SecurityToken: _token
+                    },
+                    Body: 'bodytemplated'
+                }, 'Envelope')).replace('<Body>bodytemplated</Body>', '<Body>' + req.body + '</Body>') :
+                (nodexml.obj2xml({
+                    Header: {
+                        TargetService: req.service,
+                        SecurityToken: _token
+                    },
+                    Body: req.body
+                }, 'Envelope'));
+            const fetchOptions = Object.assign({}, req.fetchOptions, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/xml'
-                },
-                body: (typeof req.body == "string") ?
-                    (nodexml.obj2xml({
-                        Header: {
-                            TargetService: req.service,
-                            SecurityToken: _token
-                        },
-                        Body: 'bodytemplated'
-                    }, 'Envelope')).replace('<Body>bodytemplated</Body>', '<Body>' + req.body + '</Body>') :
-                    (nodexml.obj2xml({
-                        Header: {
-                            TargetService: req.service,
-                            SecurityToken: _token
-                        },
-                        Body: req.body
-                    }, 'Envelope'))
+                body: requestBody
             });
+            const response = await fetch(_accessPoint, fetchOptions);
 
             const data = await response.text();
             const resp = nodexml.xml2obj(data);
@@ -326,29 +369,15 @@ module.exports.open = function (accessPoint, token) {
                 req.promiseReject(errorInfo);
             }
         } catch (error) {
-            const errorInfo = {
-                'loginError': null,
-                'dsaError': null,
-                'networkError': {
-                    name: error.name,
-                    message: error.message,
-                    stack: error.stack,
-                    type: error.type || 'fetch_error'
-                }
-            };
-
-            for (index in _ErrorCallBack) {
-                _ErrorCallBack[index](req, errorInfo);
-            }
-            req.result(null, errorInfo, null);
-            req.promiseReject(errorInfo);
+            RejectRequest(req, CreateNetworkErrorInfo(error), null);
         }
     }
 
     var result = {
         getUserInfo: function () { return _UserInfo; },
         getAccessPoint: function () { return _accessPoint; },
-        send: function (req) {
+        send: function (request, options) {
+            var req = Object.assign({}, request);
             req.service = req.service || '';
             req.body = req.body || {};
             req.autoRetry = req.autoRetry || false;
@@ -359,6 +388,13 @@ module.exports.open = function (accessPoint, token) {
                 req.promiseReslove = reslove;
                 req.promiseReject = reject;
             });
+            try {
+                req.fetchOptions = NormalizeRequestOptions(options);
+            }
+            catch (error) {
+                RejectRequest(req, CreateNetworkErrorInfo(error), null);
+                return resultPromise;
+            }
             if (_IsLogin === false && _LoginError !== null) {
                 req.result(null, {
                     'loginError': _LoginError,
