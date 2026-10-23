@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict');
 const { afterEach, test } = require('node:test');
 
-const nodedsa = require('../app');
+const nodedsa = require(process.env.NODEDSA_TEST_PACKAGE || '../app');
 
 const originalFetch = global.fetch;
 

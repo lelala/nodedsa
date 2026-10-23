@@ -1,25 +1,28 @@
 {
     "name": "nodedsa",
-    "version": "2.1.0",
+    "version": "3.0.0",
     "description": "ischool dsa client",
     "main": "app.js",
     "files": [
         "app.js",
+        "lib/",
         "README.md",
         "CHANGELOG.md"
     ],
     "scripts": {
-        "test": "node --test",
+        "test": "node scripts/run-tests.js",
         "spec:list": "openspec list --specs",
         "spec:validate": "openspec validate --all --strict --no-interactive",
-        "spec:status": "openspec list"
+        "spec:status": "openspec list",
+        "test:package": "node scripts/test-package.js",
+        "test:live": "node scripts/verify-live.js"
     },
     "author": {
         "name": "ischool.com.tw",
         "email": "lealal@ischool.com.tw"
     },
     "dependencies": {
-        "nodexml": "*"
+        "nodexml": "1.0.2"
     },
     "repository": {
         "type": "git",
@@ -31,6 +34,10 @@
     },
     "homepage": "https://github.com/lelala/nodedsa",
     "devDependencies": {
-        "@fission-ai/openspec": "^1.5.0"
+        "@fission-ai/openspec": "^1.5.0",
+        "saxes": "6.0.0"
+    },
+    "engines": {
+        "node": ">=18"
     }
 }
