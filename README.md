@@ -2,6 +2,25 @@
 
 供 Node.js 專案安裝的 CommonJS DSA 客戶端。目標版本 **3.0.0（待發布）**，runtime 支援 Node.js 18+；OpenSpec 開發工具需 Node.js 20.19+。保留 MIT 授權。
 
+## 開發環境與使用端版本
+
+本專案開發基準為 **Node.js 26.12.1**，由 `.nvmrc` 固定。已安裝 nvm 的開發者可在本專案目錄執行：
+
+```sh
+nvm install
+nvm use
+node --version # v26.12.1
+npm ci
+npm test
+npm run spec:validate
+```
+
+這只選用目前 shell 的專案版本，不需要修改 `nvm alias default`。Node 26.12.1 是安全更新版本，發布時標示為 Current；[官方發布說明](https://nodejs.org/en/blog/release/v26.12.1)。
+
+引用 nodedsa 的專案仍可使用 Node.js 18，`engines.node` 維持 `>=18`；安裝此套件不會替使用端安裝或切換 Node.js。開發版本與最低執行版本分開管理，不引入僅 Node 26 可用的 runtime API。驗收矩陣包含 Node 18、20、22、24、26 的原始碼測試與乾淨專案 tarball 安裝測試，精確版本與執行結果記錄於 `openspec/changes/upgrade-node26-keep-node18/verification.md`。
+
+Node 18、20 已停止官方維護，保留套件相容性不代表這些環境已獲安全修補；使用端應另外規劃受維護版本的升級。[官方版本狀態](https://nodejs.org/en/about/previous-releases)。本機模擬測試不代替真實 DSA 或 Windows 實機驗收，相關待辦仍獨立保留。
+
 ## 安裝與使用
 
 正式版本發布後可安裝 `npm install nodedsa@3.0.0`。發布前先安裝本機打包產物：

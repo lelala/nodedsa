@@ -2,6 +2,8 @@
 
 ## 3.0.0 - 待發布
 
+- 開發環境以 `.nvmrc` 固定 Node.js 26.12.1；使用端最低要求維持 `>=18`、CommonJS 與正式依賴不變，不要求引用專案升到26。跨版本原始碼及 tarball 安裝驗收涵蓋18／20／22／24／26，精確證據另見 `upgrade-node26-keep-node18/verification.md`。Node18／20的相容性不代表官方安全維護；不變更PKI／legacy或控制字元策略。
+
 - PKI 逐段解碼後含 / 也以 pki_error 拒絕，補齊編碼分隔符防護（含 ..%2F..%2Fadmin）；適用完整 URL、DSNS-relative 與回傳 doorway，query/fragment 與 legacy 路由維持原契約。
 - 登入 catch 安全處理 DSNS/token getter 拋 null、undefined 或不可讀 metadata/message 的物件，正常終止登入與排隊/後續 send，不因 catch 自身失敗留下 unhandledRejection；未標記的非傳輸例外不重試，ready 可於之後有效成功完成。
 - 明確說明 OnLoginError 的相容性例外：重連失敗不派送當時既有 handler，但失敗後新註冊 handler 仍立即同步收到目前 loginError。此行為與可修改 Error 原物件沿用決策不變。
