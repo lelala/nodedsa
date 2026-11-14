@@ -171,7 +171,7 @@ module.exports.open = function (accessPoint, token, options) {
     function networkFailure(error) {
         return { loginError: null, dsaError: null, networkError: {
             name: error.name, message: error.message, stack: error.stack,
-            type: error.type || 'fetch_error'
+            type: error.type || 'fetch_error', ...tunnel.getErrorDiagnostics(error)
         } };
     }
     function rejectRequest(req, error, response, parsed, sync = false) {
@@ -311,7 +311,7 @@ module.exports.open = function (accessPoint, token, options) {
     function dsaLoginError(result) {
         const status = result.parsed?.Envelope?.Header?.Status;
         return { data: result.data, textStatus: 'unknow', XMLHttpRequest: result.response,
-            statusCode: status ? status.Code : '', message: status ? status.Message : '' };
+            statusCode: status ? status.Code : '', message: status ? status.Message : '', ...result.diagnostics };
     }
     let currentState;
     function startLogin(source = 'initial') {
@@ -398,7 +398,7 @@ module.exports.open = function (accessPoint, token, options) {
         const status = env?.Header?.Status;
         if (status?.Code !== '0') {
             rejectRequest(req, { loginError: null, dsaError: { header: env ? env.Header : null,
-                status: status ? status.Code : '', message: status ? status.Message : '' }, networkError: null },
+                status: status ? status.Code : '', message: status ? status.Message : '', ...result.diagnostics }, networkError: null },
             result.response, result.parsed);
         } else if (!req.settled) {
             req.settled = true;

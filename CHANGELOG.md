@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.0 - 待發布
+
+- PKI 回應錯誤與共用 HTTP 錯誤新增 `httpStatus`、`contentType`、`bodyLength`、`responseSample`。樣本取原始回應本文前 4096 個 Unicode 字元，完整長度以 UTF-8 位元組計算。
+- PKI 非 2xx 若帶有效非零 DSA 錯誤信封，沿用既有 DSA 錯誤並附回應診斷。錯誤分類、訊息、重試與成功回傳契約維持相容。
+
 ## 3.0.0 - 待發布
 
 - 開發環境以 `.nvmrc` 固定 Node.js 26.12.1；使用端最低要求維持 `>=18`、CommonJS 與正式依賴不變，不要求引用專案升到26。跨版本原始碼及 tarball 安裝驗收涵蓋18／20／22／24／26，精確證據另見 `upgrade-node26-keep-node18/verification.md`。Node18／20的相容性不代表官方安全維護；不變更PKI／legacy或控制字元策略。

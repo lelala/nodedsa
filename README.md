@@ -103,6 +103,15 @@ try {
 
 錯誤格式保留：登入失敗透過 `loginError`；DSA 服務錯誤透過 `dsaError: { header, status, message }`；網路、XML、加解密錯誤透過 `networkError: { name, message, stack, type }`。PKI 協定錯誤 type 為 `pki_error`。非字串 accessPoint、無效直接位址或 DSNS 結果，登入錯誤的 `XMLHttpRequest.type` 為 `access_point_error`（原先誤標 `pki_error`）；PKI 缺 contract 仍是 `pki_error`。既有空 accessPoint 的同步拒絕不變。result 與 OnError 收到同一請求的錯誤。伺服器錯誤欄位維持原值，使用端記錄日誌時需依自己的資料規則處理。
 
+自 3.1.0 起，PKI 交換在完整讀取回應本文後發生的錯誤，以及共用的 `http_error`，會附上四個診斷欄位。服務的 Promise、`result` 與 `OnError` 都可從 `networkError` 讀取，登入時則從 `loginError.XMLHttpRequest` 讀取。PKI 的非 2xx 回應若帶有有效的非零 DSA 錯誤信封，欄位會直接附在服務的 `dsaError` 或登入的 `loginError`。連線失敗或回應本文未讀完時沿用原有傳輸錯誤。
+
+| 欄位 | 值 |
+| --- | --- |
+| `httpStatus` | HTTP 狀態碼（數值） |
+| `contentType` | Content-Type 標頭值，缺少時為 `undefined` |
+| `bodyLength` | 完整回應本文經 Fetch 解碼成文字後，以 UTF-8 計算的位元組數 |
+| `responseSample` | HTTP 回應本文的前 4096 個 Unicode 碼點，包含換行。加密回應取解密前的本文 |
+
 兩模式都先讀取 HTTP body，再依下列規則分類；HTTP/解析錯誤在登入階段仍由 loginError 回報：
 
 | 回應 | legacy | PKI |
