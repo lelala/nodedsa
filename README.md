@@ -112,6 +112,8 @@ try {
 | `bodyLength` | 完整回應本文經 Fetch 解碼成文字後，以 UTF-8 計算的位元組數 |
 | `responseSample` | HTTP 回應本文的前 4096 個 Unicode 碼點，包含換行。加密回應取解密前的本文 |
 
+若回應以原文或 XML 跳脫形式回顯已知請求憑證或請求本文，且回顯與樣本範圍重疊，`responseSample` 會是空字串。HTTP 狀態、Content-Type 和完整本文長度照常回報。
+
 兩模式都先讀取 HTTP body，再依下列規則分類；HTTP/解析錯誤在登入階段仍由 loginError 回報：
 
 | 回應 | legacy | PKI |

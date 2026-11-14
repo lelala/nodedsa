@@ -5,6 +5,7 @@
 ## What Changes
 
 - 回報已完整讀取的 HTTP 回應狀態、Content-Type、本文長度及前 4096 個字元，沿用既有分類與訊息。
+- 若樣本包含或截到已知請求憑證或本文的回顯，清空樣本並保留其餘三欄。
 - HTTP 非 2xx 若帶有效的 PKI DSA 錯誤信封，沿用 DSA 錯誤並提供相同欄位。
 - 更新 README、CHANGELOG 與套件版本至 3.1.0，加入 mock 回歸測試。
 

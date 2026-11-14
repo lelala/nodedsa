@@ -2,7 +2,12 @@
 
 ### Requirement: 回應錯誤附有 HTTP 診斷
 
-PKI 交換在讀完 HTTP 本文後拋出的錯誤、解析 PKI 信封時的 `xml_error` 與共用 `http_error` SHALL 附有四欄。數值 `httpStatus` 取自 HTTP 狀態，`contentType` 取自 Content-Type 標頭且缺少時為 `undefined`，數值 `bodyLength` 是完整 HTTP 回應文字的 UTF-8 位元組數，字串 `responseSample` 是原始 HTTP 回應文字的前 4096 個 Unicode 字元。新增欄位 MUST 只取自回應，MUST NOT 讀取憑證、SecretKey、CryptoToken、X-Api-Key 或請求本文等請求資料。既有分類、訊息、成功結果與重試行為 SHALL 維持。
+PKI 交換在讀完 HTTP 本文後拋出的錯誤、解析 PKI 信封時的 `xml_error` 與共用 `http_error` SHALL 附有四欄。數值 `httpStatus` 取自 HTTP 狀態，`contentType` 取自 Content-Type 標頭且缺少時為 `undefined`，數值 `bodyLength` 是完整 HTTP 回應文字的 UTF-8 位元組數，字串 `responseSample` 預設是原始 HTTP 回應文字的前 4096 個 Unicode 碼點。若已知的請求憑證、SecretKey、CryptoToken、X-Api-Key 或請求本文以原文或 XML 跳脫形式回顯，且與樣本範圍重疊，`responseSample` MUST 為空字串並保留其餘三欄。請求資料 MUST NOT 附加至錯誤物件。既有分類、訊息、成功結果與重試行為 SHALL 維持。
+
+#### Scenario: 回應回顯請求資料
+
+- **WHEN** 回應本文在前 4096 個 Unicode 碼點內開始回顯已知的請求憑證、加密請求欄位或請求本文
+- **THEN** 即使回顯跨過樣本界線，`responseSample` SHALL 為空字串，HTTP 狀態、Content-Type 與完整長度 SHALL 照常回報
 
 #### Scenario: HTTP 200 攔截頁
 

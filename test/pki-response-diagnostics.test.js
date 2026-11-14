@@ -16,7 +16,7 @@ const open = () => nodedsa.open('https://fixture.test/doorway/Contract', 'fixtur
 const cipherEnvelope = cipher => '<Envelope><Header><CryptoToken><Cipher>' +
     cipher + '</Cipher></CryptoToken></Header><Body/></Envelope>';
 
-function assertDiagnostics(error, response, wire) {
+function assertDiagnostics(error, response, wire, sample = Array.from(wire).slice(0, 4096).join('')) {
     assert.deepEqual({
         httpStatus: error.httpStatus,
         contentType: error.contentType,
@@ -26,13 +26,15 @@ function assertDiagnostics(error, response, wire) {
         httpStatus: response.status,
         contentType: response.headers.get('content-type') ?? undefined,
         bodyLength: Buffer.byteLength(wire, 'utf8'),
-        responseSample: Array.from(wire).slice(0, 4096).join('')
+        responseSample: sample
     });
     assert.ok(Object.hasOwn(error, 'contentType'));
 }
 
 function serve(reply, httpStatus, contentType, service = 'Read') {
-    const server = mockDsa({ handle: call => call.service === service ? reply : undefined });
+    const server = mockDsa({
+        handle: call => call.service === service ? (typeof reply === 'function' ? reply(call) : reply) : undefined
+    });
     const served = {};
     global.fetch = async (url, options) => {
         const result = await server.fetch(url, options);
@@ -44,6 +46,56 @@ function serve(reply, httpStatus, contentType, service = 'Read') {
     };
     return served;
 }
+
+const echoPage = value => '<html><body>' + value + '</body></html>';
+
+for (const [label, echo] of [
+    ['X-Api-Key', call => echoPage(call.options.headers.get('X-Api-Key'))],
+    ['X-Api-Key crossing the sample boundary', call => '路'.repeat(4095) + call.options.headers.get('X-Api-Key')],
+    ['request payload', call => echoPage(call.innerXml.match(/<Body>(.*)<\/Body>/)[1])],
+    ['PKI SecretKey', call => echoPage(call.options.body.match(/<SecretKey>(.*)<\/SecretKey>/)[1])],
+    ['PKI Cipher', call => echoPage(call.options.body.match(/<Cipher>(.*)<\/Cipher>/)[1])],
+    ['escaped session credential', () => echoPage('session&amp;credential')]
+]) {
+    test('response sample omits echoed ' + label, async () => {
+        const served = serve(call => ({ wire: echo(call) }), 200, 'text/html');
+        const conn = nodedsa.open('https://fixture.test/doorway/Contract',
+            { '@': ['Type'], Type: 'Session', SessionID: 'session&credential' }, { transport: 'pki' });
+        await conn.ready();
+        await assert.rejects(conn.send({ service: 'Read', body: { Query: 'fixture-query' } },
+            { headers: { 'X-Api-Key': 'fixture-api-key' } }), error => {
+            assert.equal(error.networkError.type, 'pki_error');
+            assertDiagnostics(error.networkError, served.response, served.wire, '');
+            return true;
+        });
+    });
+}
+
+test('HTTP error preserves the sample when the reflected credential starts after the boundary', async () => {
+    const key = 'fixture-api-key';
+    const sample = '🚧'.repeat(4096);
+    const served = serve(call => ({ wire: sample + call.options.headers.get('X-Api-Key') }), 503, 'text/html');
+    const conn = open();
+    await conn.ready();
+    await assert.rejects(conn.send({ service: 'Read' }, { headers: { 'X-Api-Key': key } }), error => {
+        assert.equal(error.networkError.type, 'http_error');
+        assertDiagnostics(error.networkError, served.response, served.wire, sample);
+        return true;
+    });
+});
+
+test('HTTP 500 DSA error keeps its classification when the sample echoes a credential', async () => {
+    const served = serve(call => ({ xml: status('501', '<Echo>' + call.options.headers.get('X-Api-Key') +
+        '</Echo>'), plain: true }), 500, 'application/xml');
+    const conn = open();
+    await conn.ready();
+    await assert.rejects(conn.send({ service: 'Read' }, { headers: { 'X-Api-Key': 'fixture-api-key' } }), error => {
+        assert.equal(error.dsaError.status, '501');
+        assert.equal(error.dsaError.message, 'test status');
+        assertDiagnostics(error.dsaError, served.response, served.wire, '');
+        return true;
+    });
+});
 
 for (const [label, httpStatus, contentType, makeWire, type, message] of [
     ['HTML interception', 200, 'text/html', text => '<html><body>' + text + '</body></html>',
